@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-zinc-100 text-zinc-900 font-sans antialiased;
+  }
+}
+
+@layer components {
+  .receipt-paper {
+    @apply bg-[#fdfdfb] shadow-2xl border border-zinc-200 relative overflow-hidden;
+    background-image: radial-gradient(#00000005 1px, transparent 0);
+    background-size: 20px 20px;
+  }
+
+  .receipt-divider {
+    @apply border-t border-dashed border-zinc-300 my-4;
+  }
+
+  .receipt-text {
+    @apply font-mono uppercase tracking-wider;
+  }
+}

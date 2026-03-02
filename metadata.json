@@ -1,0 +1,5 @@
+{
+  "name": "Receipt Salary Counter",
+  "description": "A real-time salary counter with a macOS receipt aesthetic.",
+  "requestFramePermissions": []
+}
