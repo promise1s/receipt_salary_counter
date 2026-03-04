@@ -20,6 +20,8 @@ import { DEFAULT_PROFILE, RECEIPT_WIDTH, RECEIPT_HEIGHT } from './constants';
 import { storage } from './services/storage';
 import { salaryEngine } from './services/salaryEngine';
 
+import { WidgetView } from './WidgetView';
+
 export default function App() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [wishes, setWishes] = useState<WishItem[]>([]);
@@ -29,16 +31,28 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingWish, setEditingWish] = useState<WishItem | null>(null);
 
+  // Check for widget mode
+  // In Electron file:// protocol, window.location.search might be empty if using HashRouter or direct file loading.
+  // We check both search and hash for the mode parameter.
+  const isWidgetMode = useMemo(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.split('?')[1]);
+    return searchParams.get('mode') === 'widget' || hashParams.get('mode') === 'widget';
+  }, []);
+
   // Load initial data
   useEffect(() => {
-    const savedProfile = storage.loadProfile();
-    const savedWishes = storage.loadWishes();
-    if (savedProfile) {
-      setProfile(savedProfile);
-    } else {
-      setIsSetupOpen(true);
-    }
-    setWishes(savedWishes);
+    const loadData = async () => {
+      const savedProfile = await storage.loadProfile();
+      const savedWishes = await storage.loadWishes();
+      if (savedProfile) {
+        setProfile(savedProfile);
+      } else {
+        setIsSetupOpen(true);
+      }
+      setWishes(savedWishes);
+    };
+    loadData();
   }, []);
 
   // Ticker
@@ -69,6 +83,14 @@ export default function App() {
     const newSnapshot = salaryEngine.computeSnapshot(now, profile);
     setSnapshot(newSnapshot);
   }, [profile, simulatedTime, currentTime]);
+
+  if (isWidgetMode) {
+    return (
+      <div className="w-screen h-screen flex items-center justify-center bg-transparent">
+        <WidgetView snapshot={snapshot} />
+      </div>
+    );
+  }
 
   const handleSaveProfile = (newProfile: UserProfile) => {
     storage.saveProfile(newProfile);
@@ -205,7 +227,7 @@ function SetupWizard({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className={`flex flex-col h-full ${!isSettings ? 'p-6' : ''}`}>
       {!isSettings && (
         <div className="mb-4 shrink-0">
           <h1 className="text-xl font-bold mb-1">Setup</h1>
@@ -218,24 +240,25 @@ function SetupWizard({
           <>
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase text-zinc-400">Salary Mode</label>
-              <div className="flex p-1 bg-zinc-100 rounded-lg">
-                {[SalaryInputType.MONTHLY, SalaryInputType.ANNUAL, SalaryInputType.DAILY].map((mode) => (
-                  <button 
-                    key={mode}
-                    onClick={() => setFormData({...formData, salaryInputType: mode})}
-                    className={`flex-1 py-2 text-[10px] font-medium rounded-md transition-all ${formData.salaryInputType === mode ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500'}`}
-                  >
-                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                  </button>
-                ))}
-              </div>
+              <SegmentedControl
+                name="salaryMode"
+                options={[
+                  { label: 'Monthly', value: SalaryInputType.MONTHLY },
+                  { label: 'Annual', value: SalaryInputType.ANNUAL },
+                  { label: 'Daily', value: SalaryInputType.DAILY },
+                ]}
+                value={formData.salaryInputType}
+                onChange={(val) => setFormData({...formData, salaryInputType: val})}
+              />
             </div>
 
             {formData.salaryInputType === SalaryInputType.DAILY ? (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase text-zinc-400">Daily Salary</label>
-                  <input 
+                  <motion.input 
+                    whileFocus={{ scale: 1.02 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
                     type="number"
                     value={formData.dailySalary || ''}
                     onChange={(e) => setFormData({...formData, dailySalary: parseFloat(e.target.value) || 0})}
@@ -245,7 +268,9 @@ function SetupWizard({
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase text-zinc-400">Attendance Days</label>
-                  <input 
+                  <motion.input 
+                    whileFocus={{ scale: 1.02 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
                     type="number"
                     min="1"
                     max="31"
@@ -261,7 +286,9 @@ function SetupWizard({
                 <label className="text-xs font-bold uppercase text-zinc-400">
                   {formData.salaryInputType === SalaryInputType.MONTHLY ? 'Monthly' : 'Annual'} Salary
                 </label>
-                <input 
+                <motion.input 
+                  whileFocus={{ scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   type="number"
                   value={formData.salaryInputType === SalaryInputType.MONTHLY ? formData.monthlySalary : formData.monthlySalary * 12}
                   onChange={(e) => {
@@ -280,7 +307,9 @@ function SetupWizard({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase text-zinc-400">Payday</label>
-                <input 
+                <motion.input 
+                  whileFocus={{ scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   type="number"
                   min="1"
                   max="31"
@@ -291,24 +320,24 @@ function SetupWizard({
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase text-zinc-400">Workdays / Week</label>
-                <div className="flex p-1 bg-zinc-100 rounded-lg">
-                  {[5, 6].map((d) => (
-                    <button 
-                      key={d}
-                      onClick={() => setFormData({...formData, workdaysPerWeek: d as 5 | 6})}
-                      className={`flex-1 py-2 text-xs font-medium rounded-md transition-all ${formData.workdaysPerWeek === d ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500'}`}
-                    >
-                      {d} Days
-                    </button>
-                  ))}
-                </div>
+                <SegmentedControl
+                  name="workdays"
+                  options={[
+                    { label: '5 Days', value: 5 },
+                    { label: '6 Days', value: 6 },
+                  ]}
+                  value={formData.workdaysPerWeek}
+                  onChange={(val) => setFormData({...formData, workdaysPerWeek: val as 5 | 6})}
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase text-zinc-400">Work Start Time</label>
-                <input 
+                <motion.input 
+                  whileFocus={{ scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   type="time"
                   value={minutesToTimeStr(formData.workStartTimeMinutes)}
                   onChange={(e) => setFormData({...formData, workStartTimeMinutes: timeStrToMinutes(e.target.value)})}
@@ -317,7 +346,9 @@ function SetupWizard({
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase text-zinc-400">Work Hours/Day</label>
-                <input 
+                <motion.input 
+                  whileFocus={{ scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   type="number"
                   step="0.5"
                   value={formData.dailyWorkHours ?? ''}
@@ -333,49 +364,73 @@ function SetupWizard({
               <div className="space-y-3">
                 <label className="flex items-center gap-3 cursor-pointer group">
                   <div className={`w-10 h-6 rounded-full transition-colors relative ${formData.hasMealSubsidy ? 'bg-zinc-900' : 'bg-zinc-200'}`}>
-                    <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.hasMealSubsidy ? 'translate-x-4' : ''}`} />
+                    <motion.div 
+                      layout
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full ${formData.hasMealSubsidy ? 'translate-x-4' : ''}`} 
+                    />
                   </div>
                   <input type="checkbox" className="hidden" checked={formData.hasMealSubsidy} onChange={(e) => setFormData({...formData, hasMealSubsidy: e.target.checked})} />
                   <span className="text-sm font-medium">Meal Subsidy</span>
                 </label>
-                {formData.hasMealSubsidy && (
-                  <div className="pl-13 space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-zinc-400">Subsidy Time</label>
-                    <input 
-                      type="time"
-                      value={minutesToTimeStr(formData.mealTimeMinutes)}
-                      onChange={(e) => setFormData({...formData, mealTimeMinutes: timeStrToMinutes(e.target.value)})}
-                      className="w-full p-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm outline-none"
-                    />
-                  </div>
-                )}
+                <AnimatePresence>
+                  {formData.hasMealSubsidy && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="pl-13 space-y-1 overflow-hidden"
+                    >
+                      <label className="text-[10px] font-bold uppercase text-zinc-400">Subsidy Time</label>
+                      <input 
+                        type="time"
+                        value={minutesToTimeStr(formData.mealTimeMinutes)}
+                        onChange={(e) => setFormData({...formData, mealTimeMinutes: timeStrToMinutes(e.target.value)})}
+                        className="w-full p-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm outline-none"
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               <div className="space-y-3">
                 <label className="flex items-center gap-3 cursor-pointer group">
                   <div className={`w-10 h-6 rounded-full transition-colors relative ${formData.hasTaxiSubsidy ? 'bg-zinc-900' : 'bg-zinc-200'}`}>
-                    <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.hasTaxiSubsidy ? 'translate-x-4' : ''}`} />
+                    <motion.div 
+                      layout
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full ${formData.hasTaxiSubsidy ? 'translate-x-4' : ''}`} 
+                    />
                   </div>
                   <input type="checkbox" className="hidden" checked={formData.hasTaxiSubsidy} onChange={(e) => setFormData({...formData, hasTaxiSubsidy: e.target.checked})} />
                   <span className="text-sm font-medium">Taxi Subsidy</span>
                 </label>
-                {formData.hasTaxiSubsidy && (
-                  <div className="pl-13 space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-zinc-400">Subsidy Time</label>
-                    <input 
-                      type="time"
-                      value={minutesToTimeStr(formData.taxiTimeMinutes)}
-                      onChange={(e) => setFormData({...formData, taxiTimeMinutes: timeStrToMinutes(e.target.value)})}
-                      className="w-full p-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm outline-none"
-                    />
-                  </div>
-                )}
+                <AnimatePresence>
+                  {formData.hasTaxiSubsidy && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="pl-13 space-y-1 overflow-hidden"
+                    >
+                      <label className="text-[10px] font-bold uppercase text-zinc-400">Subsidy Time</label>
+                      <input 
+                        type="time"
+                        value={minutesToTimeStr(formData.taxiTimeMinutes)}
+                        onChange={(e) => setFormData({...formData, taxiTimeMinutes: timeStrToMinutes(e.target.value)})}
+                        className="w-full p-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm outline-none"
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase text-zinc-400">Birth Date</label>
-              <input 
+              <motion.input 
+                whileFocus={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 type="date"
                 value={formData.birthDate || ''}
                 onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
@@ -384,7 +439,9 @@ function SetupWizard({
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase text-zinc-400">Graduation Date</label>
-              <input 
+              <motion.input 
+                whileFocus={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 type="date"
                 value={formData.graduationDate || ''}
                 onChange={(e) => setFormData({...formData, graduationDate: e.target.value})}
@@ -393,7 +450,9 @@ function SetupWizard({
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase text-zinc-400">Retirement Age</label>
-              <input 
+              <motion.input 
+                whileFocus={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 type="number"
                 value={formData.retirementAge ?? ''}
                 onChange={(e) => setFormData({...formData, retirementAge: parseInt(e.target.value) || 60})}
@@ -431,7 +490,7 @@ function SetupWizard({
         )}
       </div>
 
-      <div className="mt-8 flex gap-3">
+      <div className="mt-auto pt-6 flex gap-3">
         {step === 2 && (
           <button 
             onClick={prevStep}
@@ -453,6 +512,42 @@ function SetupWizard({
 }
 
 import { RollingNumber } from './components/RollingNumber';
+
+function SegmentedControl<T extends string | number>({ 
+  options, 
+  value, 
+  onChange, 
+  name 
+}: { 
+  options: { label: string; value: T }[]; 
+  value: T; 
+  onChange: (value: T) => void; 
+  name: string;
+}) {
+  return (
+    <div className="flex p-1 bg-zinc-100 rounded-lg relative isolate">
+      {options.map((option) => {
+        const isActive = value === option.value;
+        return (
+          <button 
+            key={option.value}
+            onClick={() => onChange(option.value)}
+            className={`flex-1 py-2 text-[10px] font-medium rounded-md transition-colors relative z-10 ${isActive ? 'text-zinc-900' : 'text-zinc-500'}`}
+          >
+            {isActive && (
+              <motion.div
+                layoutId={`segment-bg-${name}`}
+                className="absolute inset-0 bg-white shadow-sm rounded-md -z-10"
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              />
+            )}
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 // ... (imports remain the same)
 
@@ -613,9 +708,9 @@ function ReceiptView({
           <h3 className="receipt-text text-xs font-bold">Wishlist</h3>
           <button 
             onClick={onAddWish}
-            className="p-1 hover:bg-zinc-100 rounded-full transition-colors"
+            className="flex items-center gap-1 px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded-md transition-colors text-[10px] font-medium text-zinc-600"
           >
-            <Plus size={14} />
+            <Plus size={12} /> Add Item
           </button>
         </div>
         
@@ -652,12 +747,12 @@ function ReceiptView({
 
       {/* Footer */}
       <div className="p-6 mt-auto flex justify-between items-center">
-        <span className="receipt-text text-[8px] text-zinc-300">v1.1.0-PROD</span>
+        <span className="receipt-text text-[10px] text-zinc-300 font-mono">v1.1.0</span>
         <button 
           onClick={onOpenSettings}
-          className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-all text-[10px] font-medium"
         >
-          <Settings size={16} />
+          <Settings size={14} /> Settings
         </button>
       </div>
     </div>

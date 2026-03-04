@@ -1,22 +1,47 @@
 
 import { UserProfile, WishItem } from '../types';
 
-const PROFILE_KEY = 'salary_receipt_profile';
-const WISHES_KEY = 'salary_receipt_wishes';
-
 export const storage = {
-  saveProfile: (profile: UserProfile) => {
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  saveProfile: async (profile: UserProfile): Promise<void> => {
+    try {
+      await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profile),
+      });
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+    }
   },
-  loadProfile: (): UserProfile | null => {
-    const data = localStorage.getItem(PROFILE_KEY);
-    return data ? JSON.parse(data) : null;
+  loadProfile: async (): Promise<UserProfile | null> => {
+    try {
+      const response = await fetch('/api/profile/latest');
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to load profile:', error);
+      return null;
+    }
   },
-  saveWishes: (wishes: WishItem[]) => {
-    localStorage.setItem(WISHES_KEY, JSON.stringify(wishes));
+  saveWishes: async (wishes: WishItem[]): Promise<void> => {
+    try {
+      await fetch('/api/wishes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(wishes),
+      });
+    } catch (error) {
+      console.error('Failed to save wishes:', error);
+    }
   },
-  loadWishes: (): WishItem[] => {
-    const data = localStorage.getItem(WISHES_KEY);
-    return data ? JSON.parse(data) : [];
+  loadWishes: async (): Promise<WishItem[]> => {
+    try {
+      const response = await fetch('/api/wishes/latest');
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to load wishes:', error);
+      return [];
+    }
   }
 };

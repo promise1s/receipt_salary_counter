@@ -1,0 +1,14 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Body -->
+  <path d="M32 20V50" stroke="black" stroke-width="4" stroke-linecap="round"/>
+  <!-- Head -->
+  <circle cx="32" cy="18" r="3" fill="black"/>
+  <!-- Antennae -->
+  <path d="M32 18C32 18 26 10 22 12" stroke="black" stroke-width="3" stroke-linecap="round"/>
+  <path d="M32 18C32 18 38 10 42 12" stroke="black" stroke-width="3" stroke-linecap="round"/>
+  <!-- Wings -->
+  <path d="M32 24C32 24 10 10 6 24C2 38 20 40 32 36" stroke="black" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M32 24C32 24 54 10 58 24C62 38 44 40 32 36" stroke="black" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M32 36C32 36 16 54 20 58C24 62 32 50 32 46" stroke="black" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M32 36C32 36 48 54 44 58C40 62 32 50 32 46" stroke="black" stroke-width="3" stroke-linejoin="round"/>
+</svg>
