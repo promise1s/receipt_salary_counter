@@ -11,27 +11,33 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "electron:start": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron:pack": "npm run build && electron-builder build --mac"
+    "electron:pack": "npm run build && electron-builder build --mac",
+    "postinstall": "electron-builder install-app-deps"
   },
   "build": {
     "appId": "com.salary.receipt",
     "productName": "Salary Receipt",
     "mac": {
       "target": "dmg",
-      "category": "public.app-category.finance"
+      "category": "public.app-category.finance",
+      "icon": "butterfly.png"
     },
     "files": [
       "dist/**/*",
       "electron-main.js",
+      "electron-server.js",
       "package.json",
-      "public/**/*"
+      "public/**/*",
+      "butterfly.png"
     ],
     "directories": {
       "buildResources": "assets"
-    }
+    },
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**/*"
+    ]
   },
   "dependencies": {
-    "@google/genai": "^1.29.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "better-sqlite3": "^12.4.1",
